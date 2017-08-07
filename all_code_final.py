@@ -47,7 +47,21 @@ class Smote:
             gap=random.random()
             self.synthetic[self.newindex]=self.samples[i]+gap*dif
             self.newindex+=1
-            
+
+# arr_x坐标的x值 arr_y坐标的y值 a,b,c对应L:ax+by+c=0
+def mindistance( arr_x,arr_y,a,b,c ):
+    if len(arr_x) != len(arr_y):
+        return "list input error!"
+    i = 0
+    temp = abs(a*arr_x[0]+b*arr_y[0]+c)/((a*a+b*b)**0.5)
+    for n in range(len(arr_x)):
+        d = abs(a*arr_x[n]+b*arr_y[n]+c)/((a*a+b*b)**0.5)
+        if d < temp:
+            temp = d
+            i = n
+    return i
+
+
 if __name__ == "__main__":
     ##    #nrows = 100
     # 读取数据
@@ -134,7 +148,7 @@ if __name__ == "__main__":
     #alpha的L2交叉验证
     alpha_can = np.logspace(-3, 2, 10)
 
-    lr = LogisticRegressionCV(Cs = alpha_can, cv=5, scoring = 'roc_auc')
+    lr = LogisticRegressionCV(Cs = alpha_can, cv=5, scoring = 'roc_auc', class_weight='balanced')
 
 #    lr = LogisticRegression()
     #训练数据
@@ -150,28 +164,33 @@ if __name__ == "__main__":
 #    y_hat = lr.predict(test_all_x)
 
 
+## 计算auc
+    yy = lr.predict_proba(train_all_x)
+    y1 = yy[:,1]
+    auc_train = metrics .roc_auc_score(train_all_y, y1)
+    
+    
+    
+### 计算roc
+    roc_train = metrics.roc_curve(train_all_y, y1)
+    plt.plot(roc_train[0], roc_train[1])
+
+#################################################
 ### 计算auc
-#    yy = lr.predict_proba(train_all_x)
-#    y1 = yy[:,1]
-#    auc_train = metrics .roc_auc_score(train_all_y, y1)
-#    
-#    
-#    
-#### 计算roc
-#    roc_train = metrics.roc_curve(train_all_y, y1)
-#    plt.plot(roc_train[0], roc_train[1])
-#
-#
 #    y_test = lr.predict_proba(test_all_x)
 #    y1_test = y_test[:,1]
 #    auc_test = metrics .roc_auc_score(test_all_y, y1_test)
-#    
+#### 计算roc 
 #    roc_test = metrics.roc_curve(test_all_y, y1_test)
 #    plt.plot(roc_test[0], roc_test[1])
 #    
+
+### 计算阈值
+    roc_threshold_loc = mindistance(roc_train[0], roc_train[1], 1, 1, -1)
+    roc_threshold = roc_train[2][roc_threshold_loc]
     
     ###计算分类
-    rat = 0.32
+    rat = roc_threshold
     yy = lr.predict_proba(df_test)
     yy_1 = yy[:,1]
     y_hat = list(range(0, len(yy)))
@@ -184,6 +203,7 @@ if __name__ == "__main__":
     
     df_test_all.insert(0,'tag', y_hat)
     reult = df_test_all['tag']
+    reult.astype(int)
     
     reult.to_csv('df_test_result.csv',encoding = "GBK")
 #        
