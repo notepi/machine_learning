@@ -66,10 +66,14 @@ if __name__ == "__main__":
     ##    #nrows = 100
     # 读取数据
     #header=None,
-    df_id_train = pd.read_csv("df_times_tag_train_percent_filled_sorted.csv", encoding='GBK')
+    df_id_train = pd.read_csv("df_id_tag_train_final.csv", encoding='GBK')
     
     df_test_all = pd.read_csv("df_test_final.csv", encoding='GBK', index_col = 0)
     
+#    df_id_train = pd.read_csv("df_times_tag_train_percent_filled_sorted.csv", encoding='GBK')
+#    
+#    df_test_all = pd.read_csv("df_test_final.csv", encoding='GBK', index_col = 0)
+#    
 
 #    #删除标签
 #
@@ -94,7 +98,10 @@ if __name__ == "__main__":
     del data_1_2["tag"]
     del data_1_3["tag"]      
     
+    #过采样比例
     NOC = 1200
+    
+    #产生过采样数据
     s = Smote(data_1_0.values, N=NOC)
     data_1_0_s = s.over_sampling()
     
@@ -107,26 +114,32 @@ if __name__ == "__main__":
     s=Smote(data_1_3.values, N=NOC)
     data_1_3_s = s.over_sampling()
     
+    #数据类型转换
     data_1_0_s = pd.DataFrame(data_1_0_s)
     data_1_1_s = pd.DataFrame(data_1_1_s)
     data_1_2_s = pd.DataFrame(data_1_2_s)
     data_1_3_s = pd.DataFrame(data_1_3_s)
     
+    #数据合并
     train_all_1 = pd.concat([data_1_0_s, data_1_1_s, data_1_2_s, data_1_3_s], axis=0)#1训练样本数据和标签整合
     train_all_1['tag'] = 1
+    
+    #标签为0的数据获取
     data_0_train, data_0_test = train_test_split(a_data_0, train_size=0.95, random_state=1)
     
     
     ####
     data_0_train =  pd.DataFrame(data_0_train.values)
     train_all_1 = pd.DataFrame(train_all_1.values)
-    train_all = pd.concat([train_all_1, data_0_train], axis=0)#1训练样本数据和标签整合
+    train_all = pd.concat([train_all_1, data_0_train], axis=0)#1训练样本数据和标签整合    
+    #重新设置索引
     train_all = train_all.reset_index(drop=True)
     
-    
+    #提取标签中的数据和标签    
     train_all_x = train_all.loc[:,0:38]
     train_all_y = train_all.loc[:,39]
     
+    #设置标签1数据的标签
     data_1_test['tag'] = 1
     data_1_test = data_1_test.reset_index(drop=True)
     data_0_test = data_0_test[0:100]
@@ -202,10 +215,21 @@ if __name__ == "__main__":
     y_hat = np.array(y_hat, dtype = float)
     
     df_test_all.insert(0,'tag', y_hat)
-    reult = df_test_all['tag']
-    reult.astype(int)
+    result = df_test_all['tag']
     
-    reult.to_csv('df_test_result.csv',encoding = "GBK")
+    result.to_csv('df_test_result.csv',encoding = "GBK")
+    
+####################
+### 生成比赛需要格式
+    result = pd.read_csv("df_test_result.csv", encoding='GBK', header = None , names = ['id','tag'])
+    
+    id = pd.read_csv("df_id_test.csv", encoding='GBK', header = None , names = ['id'])
+    ida = id
+    hh = pd.merge(id, result, on=None,left_on="id", right_on="id", copy=False, indicator=False, how='outer')
+    
+    hh.to_csv('df_id_test_result.csv',encoding = "GBK", index = None, header = None)
+
+
 #        
 ###    
 ###    #读取模型系数

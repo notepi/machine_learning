@@ -13,8 +13,8 @@ from sklearn.linear_model import LogisticRegression
 
 if __name__ == "__main__":
       #header=None,
-    df_id_train = pd.read_csv("df_test.csv", nrows = 1000)
-    
+#    df_id_train = pd.read_csv("df_test.csv")
+    df_id_train = pd.read_csv("df_train.csv")
     #统计次数
     times_count = df_id_train["个人编码"].value_counts()
     times_count = pd.Series.to_frame(times_count)
@@ -218,7 +218,8 @@ if __name__ == "__main__":
     df_id_train.fillna({'一次性医用材料费比例': 0}, inplace = True)                                                                           
         
 
-    df_id_train.to_csv('df_test_final.csv',encoding = "GBK", index = False)
+#    df_id_train.to_csv('df_test_final.csv',encoding = "GBK")
+    df_id_train.to_csv('df_train_final.csv',encoding = "GBK")
     
     
     

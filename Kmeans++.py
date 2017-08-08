@@ -65,9 +65,9 @@ if __name__ == "__main__":
     ##    #nrows = 100
     # 读取数据
     #header=None,
-    df_id_train = pd.read_csv("df_times_tag_train_percent_filled_sorted.csv", encoding='GBK')
+    df_id_train = pd.read_csv("df_id_tag_train_final.csv", encoding='GBK')
     
-    df_test = pd.read_csv("df_test_final.csv", encoding='GBK', index_col = 0)
+    df_test = pd.read_csv("df_train_final.csv", encoding='GBK', index_col = 0)
     
 
 #    #删除标签
