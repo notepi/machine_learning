@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn import metrics
+from sklearn.metrics import precision_recall_fscore_support
 
 class Smote:
     def __init__(self,samples,N=10,k=5):
@@ -90,13 +91,11 @@ if __name__ == "__main__":
 #
     a_data_0 = df_id_train[df_id_train['tag']==0] #提前0样本数据
     a_data_1 = df_id_train[df_id_train['tag'] == 1] #提前1样本数据
-    
-    
+ 
     del a_data_1["tag"]
     
     data_1_test, data_1 = train_test_split(a_data_1, train_size=0.1, random_state=1)
-
-    ###pr数据
+    
     non_data = data_1.copy()
     
     cls = KMeans(n_clusters=4, init='k-means++').fit(data_1.values)
@@ -148,24 +147,40 @@ if __name__ == "__main__":
     
     data_1_test['tag'] = 1
     data_1_test = data_1_test.reset_index(drop=True)
-    data_0_test = data_0_test[0:100]
+    data_0_test = data_0_test[0:1900]
     
     test_all = pd.concat([data_1_test, data_0_test  ], axis=0)#1训练样本数据和标签整合
     test_all = test_all.reset_index(drop=True)
     test_all = pd.DataFrame(test_all.values)
     test_all_x = test_all.loc[:,0:31]
-    test_all_y = test_all.loc[:,32]    
-    
+    test_all_y = test_all.loc[:,32]
+
     N = 2
     train_all_x = Norder( train_all_x, N )
     test_all_x = Norder( test_all_x, N )
 
+
+#####################
+###生成pr数据
+    non_data['tag'] = 1
+    pr_1 = pd.DataFrame(non_data.values)  
+    pr_0 = data_0_train[0:16000]
+    
+    pr = pd.concat([pr_1, pr_0], axis=0)#1训练样本数据和标签整合
+    pr_x = pr.loc[:, 0:31]
+    pr_y = pr.loc[:, 32]
+    pr_x = Norder( pr_x, N )
+    
     #数据标准化
     st = StandardScaler().fit(train_all_x)
     train_all_x = st.transform(train_all_x) 
     test_all_x = st.transform(test_all_x)
 #    df_test = st.transform(df_test)
- 
+    
+    ##############################
+    #pr数据标准化
+    pr_x = st.transform(pr_x) 
+    
     
     #alpha的L2交叉验证
     alpha_can = np.logspace(-3, 2, 10)
@@ -175,75 +190,7 @@ if __name__ == "__main__":
 #    lr = LogisticRegression()
     #训练数据
     lr.fit(train_all_x, train_all_y.values.ravel())
-###########################################################################################    
-#    F1C = []
-#    for nn, pr in enumerate(np.arange(0, 1, 0.01)):
-#        
-#        ###计算分类
-#        rat = pr
-#        yy = lr.predict_proba(test_all_x)
-#        yy_1 = yy[:,1]
-#        y_hat = list(range(0, len(yy)))
-#        for i, j  in enumerate(yy_1):
-#            if yy_1[i] >= rat:
-#                y_hat[i] = 1
-#            else:
-#                y_hat[i] = 0
-#        y_hat = np.array(y_hat, dtype = float)
-#    
-#        y = test_all_y.values.reshape(-1)
-#        result = y_hat == y
-#        print (y_hat)
-#        print (result)
-#        acc = np.mean(result)
-#        print ('准确度: %.2f%%' % (100 * acc))
-#        
-#        y_test = y
-#        precision = ((y_test == 1) * (y_hat == 1)).sum() / (y_hat == 1).sum()#精确度
-#        recall = ((y_test == 1) * (y_hat == 1)).sum() / (y_test == 1).sum()#召回率
-#        F1 = (2 * precision * recall) / (precision + recall)#F1值
-#        
-#        F1C.append(F1)
-#        
-#    plt.plot(np.arange(0, 1, 0.01), F1C)
-#    d = 0
-#    v = 0
-#    for i,j in enumerate(F1C):
-#        if j > v:
-#            v = j
-#            d = i
-#    print(v)
-#    print(d)
-#    
-        ###计算分类
-#    rat = d/100
-    rat = 0.77
-    yy = lr.predict_proba(test_all_x)
-    yy_1 = yy[:,1]
-    y_hat = list(range(0, len(yy)))
-    for i, j  in enumerate(yy_1):
-        if yy_1[i] >= rat:
-            y_hat[i] = 1
-        else:
-            y_hat[i] = 0
-    y_hat = np.array(y_hat, dtype = float)
-    #计算准确度
-    y = test_all_y.values.reshape(-1)
-    result = y_hat == y
-    print (y_hat)
-    print (result)
-    acc = np.mean(result)
-    print ('准确度: %.2f%%' % (100 * acc))
-           
-    y_test = y
-    precision = ((y_test == 1) * (y_hat == 1)).sum() / (y_hat == 1).sum()#精确度
-    recall = ((y_test == 1) * (y_hat == 1)).sum() / (y_test == 1).sum()#召回率
-    F1 = (2 * precision * recall) / (precision + recall)#F1值
-    print("精确度:",precision)
-    print("召回率:",recall)
-    print("F1值:",F1)
-    
-#########################################################################
+#
 #    ## 计算auc
 #    yy = lr.predict_proba(train_all_x)
 #    y1 = yy[:,1]
@@ -262,37 +209,66 @@ if __name__ == "__main__":
 #    ### 计算roc    
 #    roc_test = metrics.roc_curve(test_all_y, y1_test)
 #    plt.plot(roc_test[0], roc_test[1])
-#    
+    
 #    ### 计算阈值
 #    roc_threshold_loc = mindistance(roc_train[0], roc_train[1], 1, 1, -1)
 #    roc_threshold = roc_train[2][roc_threshold_loc]
-#    
-#    ###计算分类
-#    rat = roc_threshold
-#    yy = lr.predict_proba(test_all_x)
-#    yy_1 = yy[:,1]
-#    y_hat = list(range(0, len(yy)))
-#    for i, j  in enumerate(yy_1):
-#        if yy_1[i] >= rat:
-#            y_hat[i] = 1
-#        else:
-#            y_hat[i] = 0
-#    y_hat = np.array(y_hat, dtype = float)
-#    #计算准确度
-#    y = test_all_y.values.reshape(-1)
-#    result = y_hat == y
-#    print (y_hat)
-#    print (result)
-#    acc = np.mean(result)
-#    print ('准确度: %.2f%%' % (100 * acc))
-#           
-#    y_test = y
-#    precision = ((y_test == 1) * (y_hat == 1)).sum() / (y_hat == 1).sum()#精确度
-#    recall = ((y_test == 1) * (y_hat == 1)).sum() / (y_test == 1).sum()#召回率
-#    F1 = (2 * precision * recall) / (precision + recall)#F1值
-#    print("精确度:",precision)
-#    print("召回率:",recall)
-#    print("F1值:",F1)
+    
+#    test_all_x = test_all_x[0:]
+
+#####################################3
+#计算PR平衡点
+    PC = []
+    RC = []
+    FC = []
+    yy = lr.predict_proba(pr_x)
+    yy_1 = yy[:,1]
+    for nn, j in enumerate(np.arange(0, 1, 0.01)):
+        roc_threshold = j
+        ###计算分类
+        rat = roc_threshold
+        y_hat = list(range(0, len(yy)))
+        for i, j  in enumerate(yy_1):
+            if yy_1[i] >= rat:
+                y_hat[i] = 1
+            else:
+                y_hat[i] = 0
+        y_hat = np.array(y_hat, dtype = float)
+        
+        #计算准确度
+        y = pr_y.values.reshape(-1)
+#        result = y_hat == y
+#        print (y_hat)
+#        print (result)
+#        acc = np.mean(result)
+#        print ('准确度: %.2f%%' % (100 * acc))
+    
+        PR= precision_recall_fscore_support(y, y_hat, average='binary') 
+        PC.append(PR[0])
+        RC.append(PR[1])
+        FC.append(PR[2])
+        
+    pr_threshold_loc = mindistance(PC, RC, 1, -1, 0)
+    pr_threshold = pr_threshold_loc/100
+        
+    plt.plot(PC, RC)    
+    
+###########################    
+    rat = pr_threshold
+    yy = lr.predict_proba(pr_x)
+    yy_1 = yy[:,1]
+    y_hat = list(range(0, len(yy)))
+    for i, j  in enumerate(yy_1):
+        if yy_1[i] >= rat:
+            y_hat[i] = 1
+        else:
+            y_hat[i] = 0
+    y_hat = np.array(y_hat, dtype = float)
+    y = pr_y.values.reshape(-1)
+    PR= precision_recall_fscore_support(y, y_hat, average='binary') 
+    print("精确度:",PR[0])
+    print("召回率:",PR[1])
+    print("F1值:",PR[2])
         
         
 

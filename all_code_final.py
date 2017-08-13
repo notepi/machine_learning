@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LogisticRegressionCV
 from sklearn import metrics
-
+from sklearn.metrics import precision_recall_fscore_support
 class Smote:
     def __init__(self,samples,N=10,k=5):
         self.n_samples,self.n_attrs=samples.shape
@@ -61,12 +61,27 @@ def mindistance( arr_x,arr_y,a,b,c ):
             i = n
     return i
 
-
+def Norder( data, order ):
+    N = order
+    df_id_train = data.copy()
+    for i in range(len(df_id_train.columns)):
+        data = df_id_train.iloc[:, i]
+        for j in range(N):
+            k = j
+            value = data
+            while (k > 0) :
+                k = k-1
+                value = value * data
+            if (j > 0) :
+                loc = len(df_id_train.columns)
+                df_id_train.insert(loc, loc, value)
+    return df_id_train
+            
 if __name__ == "__main__":
     ##    #nrows = 100
     # 读取数据
     #header=None,
-    df_id_train = pd.read_csv("df_id_tag_train_final.csv", encoding='GBK')
+    df_id_train = pd.read_csv("df_times_tag_train_percent_filled_sorted.csv",index_col = 0, encoding='GBK')
     
     df_test_all = pd.read_csv("df_test_final.csv", encoding='GBK', index_col = 0)
     
@@ -136,21 +151,25 @@ if __name__ == "__main__":
     train_all = train_all.reset_index(drop=True)
     
     #提取标签中的数据和标签    
-    train_all_x = train_all.loc[:,0:38]
-    train_all_y = train_all.loc[:,39]
+    train_all_x = train_all.loc[:,0:31]
+    train_all_y = train_all.loc[:,32]
     
     #设置标签1数据的标签
     data_1_test['tag'] = 1
     data_1_test = data_1_test.reset_index(drop=True)
-    data_0_test = data_0_test[0:100]
+    data_0_test = data_0_test[0:1900]
     
     test_all = pd.concat([data_1_test, data_0_test  ], axis=0)#1训练样本数据和标签整合
     test_all = test_all.reset_index(drop=True)
     test_all = pd.DataFrame(test_all.values)
-    test_all_x = test_all.loc[:,0:38]
-    test_all_y = test_all.loc[:,39]
-
-   
+    test_all_x = test_all.loc[:,0:31]
+    test_all_y = test_all.loc[:,32]
+    
+#########################
+    N = 2
+    train_all_x = Norder( train_all_x, N )
+    test_all_x = Norder( test_all_x, N )   
+    df_test_all = Norder( df_test_all, N ) 
     #数据标准化
     st = StandardScaler().fit(train_all_x)
     train_all_x = st.transform(train_all_x)
@@ -198,12 +217,12 @@ if __name__ == "__main__":
 #    plt.plot(roc_test[0], roc_test[1])
 #    
 
-### 计算阈值
-    roc_threshold_loc = mindistance(roc_train[0], roc_train[1], 1, 1, -1)
-    roc_threshold = roc_train[2][roc_threshold_loc]
-    
+#### 计算阈值
+#    roc_threshold_loc = mindistance(roc_train[0], roc_train[1], 1, 1, -1)
+#    roc_threshold = roc_train[2][roc_threshold_loc]
+ 
     ###计算分类
-    rat = roc_threshold
+    rat = 0.77
     yy = lr.predict_proba(df_test)
     yy_1 = yy[:,1]
     y_hat = list(range(0, len(yy)))
@@ -226,7 +245,7 @@ if __name__ == "__main__":
     id = pd.read_csv("df_id_test.csv", encoding='GBK', header = None , names = ['id'])
     ida = id
     hh = pd.merge(id, result, on=None,left_on="id", right_on="id", copy=False, indicator=False, how='outer')
-    
+    hh['tag'] = hh['tag'].astype(int)
     hh.to_csv('df_id_test_result.csv',encoding = "GBK", index = None, header = None)
 
 
